@@ -1,34 +1,24 @@
 import socket
 import json
 import os
-from fetcher import get_cat_fact
+import urllib.request
+import urllib.error
+
 HOST = "127.0.0.1"
 PORT = 5000
-# we will start by creating folder for json result if it doesnt exist
-if not os.path.exist("results"):
-  os.makedirs("result")
-  server= socket.socket(socket.AF_INET ,socket.SOCK_STREAM)
-  server.bind((HOST, PORT))
-  server.listen(1)
-  print(f"server is running on {HOST}:{PORT}")
-  while True :
-    conn , addr = server.accept()
-    print("client connected: ", addr)
-    msg = conn.rcv(1024).decode()
-    print("client says: ", msg)
-    if msg == 1 
-    # clients want cat fact
-    fact= get_cat_fact()
-    # save to json file
-data = {"fact" : fact}
-with open(" result/cat_fact.json" ,"w") as f :
-  json.dump(data , f , indent=4)
-  conn.send(fact.encode())
-elif msg == "2" : 
-# client wants to exist 
-conn.send("goodbye!".encode())
-else:
-conn.send("invalid option.".encode())
-conn.close()
 
-  
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
+os.makedirs(RESULTS_DIR , exist_ok= True)
+
+def get_cat_fact(): 
+  """Fetch a random cat fact from the public API (no requests needed)."""
+url = "http://catfact.ninja/fact"
+try:
+  with urllib.request.urlopen(url,timeout=5) as response: 
+  dara = json.loads(response.read().decode("utf-8"))
+  return data.get("fact", "no fact found") 
+except (urllib.error.URLError , json.JSONDecodeError , TimeoutError) as e:
+  return f"Error fetching cat fact : {e}"
+except Exception as e: 
+  return f"Error fetching cat face: {e}"
