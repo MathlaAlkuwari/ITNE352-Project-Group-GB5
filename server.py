@@ -22,3 +22,18 @@ except (urllib.error.URLError , json.JSONDecodeError , TimeoutError) as e:
   return f"Error fetching cat fact : {e}"
 except Exception as e: 
   return f"Error fetching cat face: {e}"
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKT,sock_SO_REUSEADDR, 1)
+server.bind((HOST, PORT))
+server.listen(5)
+
+print(f"server is running on {HOST} : {PORT}")
+
+while True:
+  conn, addr = server.accept()
+  print("client connected:", addr)
+
+try: 
+  msg = conn.recv(1024).decode("utf-8").strip()
+  print("client says:", msg) 
