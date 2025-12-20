@@ -1,12 +1,13 @@
 # ============================================================
-# ملف الإعدادات - Configuration File
+# Configuration File
 # ============================================================
-# الملف ده بيحفظ معلومات الـ API عشان نستخدمها في باقي الملفات
+# This file stores API information so it can be reused
+# across other project files
 
-# مفتاح الـ API بتاع NewsAPI.org
-# ده اللي بنستخدمه عشان نقدر نجيب الأخبار من الموقع
+# NewsAPI.org API key
+# This key is required to authenticate API requests
 NEWS_API_KEY = "a7e07d89e99a46b7b42ef4d59655df86"
 
-# الرابط الأساسي للـ API
-# كل الطلبات بتتبعت على الرابط ده
+# Base URL for NewsAPI
+# All API requests will be sent through this base endpoint
 NEWS_API_BASE_URL = "https://newsapi.org/v2"
