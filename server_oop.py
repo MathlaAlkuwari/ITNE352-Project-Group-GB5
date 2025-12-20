@@ -1,104 +1,103 @@
 # ============================================================
 # Server Script - Object Oriented Programming
 # ============================================================
-# السكريبت ده بيشغل الـ Server اللي بيستقبل الـ Clients
+# This script runs the Server that accepts Clients
 
-import socket     # للتعامل مع الشبكة
-import threading  # للتعامل مع أكتر من client في نفس الوقت
-import json       # للتعامل مع JSON
-from news_handler import NewsHandler  # كلاس جلب الأخبار
-from protocol import Protocol          # كلاس البروتوكول
+import socket     # For network communication
+import threading  # To handle more than one client at the same time
+import json       # For handling JSON
+from news_handler import NewsHandler  # News fetching class
+from protocol import Protocol          # Protocol class
 
 # ============================================================
-# ClientHandler Class - معالج الـ Client
+# ClientHandler Class - Client Handler
 # ============================================================
 
 class ClientHandler:
     """
-    الكلاس ده بيتعامل مع كل client لوحده
-    كل client بيشتغل في thread منفصل
+    This class handles each client individually
+    Each client runs in a separate thread
     """
     
     def __init__(self, client_socket, client_address, group_id):
         """
-        Constructor - بيتنفذ لما نعمل object جديد
+        Constructor - executed when a new object is created
         
         Parameters:
-            client_socket: الـ socket الخاص بالـ client
-            client_address: عنوان الـ client (IP + Port)
-            group_id: رقم المجموعة (GB5)
+            client_socket: the client's socket
+            client_address: client address (IP + Port)
+            group_id: group ID (GB5)
         """
-        self.socket = client_socket       # الـ socket
-        self.address = client_address     # العنوان
-        self.group_id = group_id          # رقم المجموعة
-        self.client_name = None           # اسم الـ client (هنستقبله لاحقاً)
-        self.news_handler = NewsHandler() # object لجلب الأخبار
-        self.protocol = Protocol()        # object للاتصال
+        self.socket = client_socket       # socket
+        self.address = client_address     # address
+        self.group_id = group_id          # group ID
+        self.client_name = None           # client name (received later)
+        self.news_handler = NewsHandler() # news handler object
+        self.protocol = Protocol()        # communication protocol object
     
     def send(self, message):
-        """إرسال رسالة للـ client - wrapper function"""
+        """Send a message to the client - wrapper function"""
         return self.protocol.send_message(self.socket, message)
     
     def receive(self):
-        """استقبال رسالة من الـ client - wrapper function"""
+        """Receive a message from the client - wrapper function"""
         return self.protocol.receive_message(self.socket)
     
     # ============================================================
-    # معالجة قائمة الأخبار - Headlines Menu Handler
+    # Headlines Menu Handler
     # ============================================================
     
     def handle_headlines_menu(self):
         """
-        دالة بتتعامل مع طلبات قائمة الأخبار
-        الـ client ممكن يختار:
-        1. بحث بكلمة مفتاحية
-        2. بحث حسب الفئة
-        3. بحث حسب البلد
-        4. كل الأخبار
-        5. رجوع للقائمة الرئيسية
+        Function that handles headlines menu requests
+        The client can choose:
+        1. Search by keyword
+        2. Search by category
+        3. Search by country
+        4. All headlines
+        5. Return to main menu
         """
-        while True:  # Loop عشان نفضل نستقبل طلبات
-            # استقبال اختيار الـ client
+        while True:  # Loop to keep receiving requests
+            # Receive client choice
             choice = self.receive()
-            if not choice:  # لو الاتصال قفل
+            if not choice:  # If connection is closed
                 break
             
-            # طباعة الطلب على شاشة الـ Server
+            # Print request on server screen
             print(f"[{self.client_name}] Headlines request: {choice}")
             
             # ============================================================
-            # الاختيار 1: بحث بكلمة مفتاحية
+            # Option 1: Search by keyword
             # ============================================================
             if choice == '1':
-                self.send("READY")  # نقول للـ client: أنا جاهز
-                keyword = self.receive()  # استقبال الكلمة المفتاحية
+                self.send("READY")  # Tell the client: I'm ready
+                keyword = self.receive()  # Receive keyword
                 if not keyword:
                     break
                 
                 print(f"[{self.client_name}] Searching headlines for keyword: {keyword}")
                 
-                # جلب البيانات من NewsAPI
+                # Fetch data from NewsAPI
                 data = self.news_handler.search_headlines_by_keyword(keyword)
                 
-                # حفظ البيانات في JSON file
+                # Save data to JSON file
                 filename = f"{self.client_name}_keyword_{self.group_id}.json"
                 self.news_handler.save_to_json(data, filename)
                 
-                # إرسال البيانات للـ client
+                # Send data to client
                 self.send(json.dumps(data))
             
             # ============================================================
-            # الاختيار 2: بحث حسب الفئة
+            # Option 2: Search by category
             # ============================================================
             elif choice == '2':
                 self.send("READY")
-                category = self.receive()  # استقبال الفئة (sports, business, etc.)
+                category = self.receive()  # Receive category (sports, business, etc.)
                 if not category:
                     break
                 
                 print(f"[{self.client_name}] Searching headlines by category: {category}")
                 
-                # جلب الأخبار حسب الفئة
                 data = self.news_handler.get_headlines_by_category(category)
                 filename = f"{self.client_name}_category_{self.group_id}.json"
                 self.news_handler.save_to_json(data, filename)
@@ -106,17 +105,16 @@ class ClientHandler:
                 self.send(json.dumps(data))
             
             # ============================================================
-            # الاختيار 3: بحث حسب البلد
+            # Option 3: Search by country
             # ============================================================
             elif choice == '3':
                 self.send("READY")
-                country = self.receive()  # استقبال كود البلد (sa, us, ae, etc.)
+                country = self.receive()  # Receive country code (sa, us, ae, etc.)
                 if not country:
                     break
                 
                 print(f"[{self.client_name}] Searching headlines by country: {country}")
                 
-                # جلب أخبار البلد
                 data = self.news_handler.get_headlines_by_country(country)
                 filename = f"{self.client_name}_country_{self.group_id}.json"
                 self.news_handler.save_to_json(data, filename)
@@ -124,12 +122,11 @@ class ClientHandler:
                 self.send(json.dumps(data))
             
             # ============================================================
-            # الاختيار 4: كل الأخبار
+            # Option 4: All headlines
             # ============================================================
             elif choice == '4':
                 print(f"[{self.client_name}] Fetching all headlines")
                 
-                # جلب كل الأخبار
                 data = self.news_handler.get_all_headlines()
                 filename = f"{self.client_name}_all_headlines_{self.group_id}.json"
                 self.news_handler.save_to_json(data, filename)
@@ -137,28 +134,27 @@ class ClientHandler:
                 self.send(json.dumps(data))
             
             # ============================================================
-            # الاختيار 5: رجوع للقائمة الرئيسية
+            # Option 5: Return to main menu
             # ============================================================
             elif choice == '5':
-                break  # نخرج من الـ loop ونرجع للقائمة الرئيسية
+                break  # Exit loop and return to main menu
             
             else:
-                # اختيار غلط
                 self.send("ERROR")
     
     # ============================================================
-    # معالجة قائمة المصادر - Sources Menu Handler
+    # Sources Menu Handler
     # ============================================================
     
     def handle_sources_menu(self):
         """
-        دالة بتتعامل مع طلبات قائمة المصادر
-        الـ client ممكن يختار:
-        1. بحث حسب الفئة
-        2. بحث حسب البلد
-        3. بحث حسب اللغة
-        4. كل المصادر
-        5. رجوع للقائمة الرئيسية
+        Function that handles sources menu requests
+        The client can choose:
+        1. Search by category
+        2. Search by country
+        3. Search by language
+        4. All sources
+        5. Return to main menu
         """
         while True:
             choice = self.receive()
@@ -167,7 +163,7 @@ class ClientHandler:
             
             print(f"[{self.client_name}] Sources request: {choice}")
             
-            # الاختيار 1: بحث حسب الفئة
+            # Option 1: Search by category
             if choice == '1':
                 self.send("READY")
                 category = self.receive()
@@ -182,7 +178,7 @@ class ClientHandler:
                 
                 self.send(json.dumps(data))
             
-            # الاختيار 2: بحث حسب البلد
+            # Option 2: Search by country
             elif choice == '2':
                 self.send("READY")
                 country = self.receive()
@@ -197,7 +193,7 @@ class ClientHandler:
                 
                 self.send(json.dumps(data))
             
-            # الاختيار 3: بحث حسب اللغة
+            # Option 3: Search by language
             elif choice == '3':
                 self.send("READY")
                 language = self.receive()
@@ -212,7 +208,7 @@ class ClientHandler:
                 
                 self.send(json.dumps(data))
             
-            # الاختيار 4: كل المصادر
+            # Option 4: All sources
             elif choice == '4':
                 print(f"[{self.client_name}] Fetching all sources")
                 
@@ -222,7 +218,7 @@ class ClientHandler:
                 
                 self.send(json.dumps(data))
             
-            # الاختيار 5: رجوع للقائمة الرئيسية
+            # Option 5: Return to main menu
             elif choice == '5':
                 break
             
@@ -230,74 +226,72 @@ class ClientHandler:
                 self.send("ERROR")
     
     # ============================================================
-    # المعالج الرئيسي للـ Client - Main Handler
+    # Main Client Handler
     # ============================================================
     
     def handle(self):
         """
-        الدالة الرئيسية اللي بتتعامل مع الـ client
-        بتشتغل في thread منفصل لكل client
+        Main function that handles the client
+        Runs in a separate thread for each client
         """
         print(f"[NEW CONNECTION] {self.address} connected")
         
         try:
             # ============================================================
-            # الخطوة 1: استقبال اسم الـ Client
+            # Step 1: Receive client name
             # ============================================================
             self.client_name = self.receive()
             if not self.client_name:
                 return
             
             print(f"[CLIENT NAME] {self.client_name} from {self.address}")
-            self.send("CONNECTED")  # تأكيد الاتصال
+            self.send("CONNECTED")  # Connection confirmation
             
             # ============================================================
-            # الخطوة 2: القائمة الرئيسية - Main Menu Loop
+            # Step 2: Main Menu Loop
             # ============================================================
             while True:
-                choice = self.receive()  # استقبال الاختيار
+                choice = self.receive()  # Receive choice
                 if not choice:
                     break
                 
                 print(f"[{self.client_name}] Main menu choice: {choice}")
                 
-                # الاختيار 1: قائمة الأخبار
+                # Option 1: Headlines menu
                 if choice == '1':
                     self.send("HEADLINES")
-                    self.handle_headlines_menu()  # ندخل على قائمة الأخبار
+                    self.handle_headlines_menu()
                 
-                # الاختيار 2: قائمة المصادر
+                # Option 2: Sources menu
                 elif choice == '2':
                     self.send("SOURCES")
-                    self.handle_sources_menu()  # ندخل على قائمة المصادر
+                    self.handle_sources_menu()
                 
-                # الاختيار 3: إنهاء الاتصال
+                # Option 3: Disconnect
                 elif choice == '3':
                     print(f"[DISCONNECTED] {self.client_name} disconnected")
                     self.send("BYE")
-                    break  # نخرج من الـ loop
+                    break
                 
                 else:
                     self.send("ERROR")
         
         except Exception as e:
-            # لو حصل أي error، نطبعه
             print(f"[ERROR] {self.client_name if self.client_name else 'Unknown'}: {e}")
         
         finally:
-            # في كل الأحوال، نقفل الـ socket
             self.socket.close()
             print(f"[CLOSED] Connection with {self.client_name} closed")
 
 
 # ============================================================
-# NewsServer Class - السيرفر الرئيسي
+# NewsServer Class - Main Server
 # ============================================================
 
 class NewsServer:
     """
-    الكلاس الرئيسي للـ Server
-    مسؤول عن قبول الاتصالات وإنشاء threads للـ clients
+    Main Server class
+    Responsible for accepting connections and creating threads for clients
     """
     
     def __init__(self, host='127.0.0.1', port=5000, group_id="GB5"):
@@ -305,76 +299,44 @@ class NewsServer:
         Constructor
         
         Parameters:
-            host: عنوان الـ IP (localhost = 127.0.0.1)
-            port: رقم المنفذ (5000)
-            group_id: رقم المجموعة (GB5)
+            host: IP address (localhost = 127.0.0.1)
+            port: port number (5000)
+            group_id: group ID (GB5)
         """
         self.host = host
         self.port = port
         self.group_id = group_id
-        self.server_socket = None  # الـ socket الرئيسي
-        self.is_running = False    # حالة الـ Server (شغال / مش شغال)
+        self.server_socket = None
+        self.is_running = False
     
     def start(self):
         """
-        بداية تشغيل الـ Server
+        Start the server
         """
-        # ============================================================
-        # الخطوة 1: إنشاء الـ Socket
-        # ============================================================
-        # AF_INET = IPv4, SOCK_STREAM = TCP
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
-        # SO_REUSEADDR: عشان نقدر نعيد استخدام المنفذ بسرعة
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
-        # ============================================================
-        # الخطوة 2: ربط الـ Socket بالـ IP والـ Port
-        # ============================================================
         self.server_socket.bind((self.host, self.port))
-        
-        # ============================================================
-        # الخطوة 3: الاستماع للاتصالات
-        # ============================================================
-        # listen(3) = نقبل حد أقصى 3 clients في قائمة الانتظار
         self.server_socket.listen(3)
         self.is_running = True
         
-        # طباعة رسالة البداية
         self.print_banner()
         
         try:
-            # ============================================================
-            # الخطوة 4: قبول الاتصالات (Loop لا نهائي)
-            # ============================================================
             while self.is_running:
-                # accept() بتستنى لحد ما client يتصل
-                # بترجع: socket الـ client + عنوانه
                 client_socket, client_address = self.server_socket.accept()
                 
-                # ============================================================
-                # الخطوة 5: إنشاء ClientHandler لهذا الـ Client
-                # ============================================================
                 client_handler = ClientHandler(
-                    client_socket, 
-                    client_address, 
+                    client_socket,
+                    client_address,
                     self.group_id
                 )
                 
-                # ============================================================
-                # الخطوة 6: إنشاء Thread جديد لهذا الـ Client
-                # ============================================================
-                # كل client بيشتغل في thread منفصل
-                # عشان نقدر نتعامل مع أكتر من client في نفس الوقت
                 thread = threading.Thread(target=client_handler.handle)
-                thread.start()  # بداية الـ Thread
+                thread.start()
                 
-                # طباعة عدد الاتصالات النشطة
-                # threading.active_count() - 1 لأن الـ main thread محسوب
                 print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
         
         except KeyboardInterrupt:
-            # لو المستخدم ضغط Ctrl+C
             print("\n[SHUTTING DOWN] Server closing...")
             self.stop()
         
@@ -384,7 +346,7 @@ class NewsServer:
     
     def stop(self):
         """
-        إيقاف الـ Server
+        Stop the server
         """
         self.is_running = False
         if self.server_socket:
@@ -393,7 +355,7 @@ class NewsServer:
     
     def print_banner(self):
         """
-        طباعة رسالة بداية الـ Server
+        Print server startup banner
         """
         print("=" * 60)
         print(f"NEWS SERVICE SERVER (OOP) - Group {self.group_id}")
@@ -404,24 +366,22 @@ class NewsServer:
 
 
 # ============================================================
-# Main Function - نقطة البداية
+# Main Function - Entry Point
 # ============================================================
 
 def main():
     """
-    الدالة الرئيسية - نقطة بداية البرنامج
+    Main function - program entry point
     """
-    # إنشاء object من NewsServer
     server = NewsServer(host='127.0.0.1', port=5000, group_id="GB5")
-    
-    # بداية تشغيل الـ Server
     server.start()
 
 
 # ============================================================
-# تشغيل البرنامج
+# Program Execution
 # ============================================================
 if __name__ == "__main__":
-    # ده بيتنفذ لو شغلنا الملف مباشرة
-    # لو استوردنا الملف في ملف تاني، ده مش هيتنفذ
+    # Executed only when running this file directly
+    # Not executed if the file is imported
+
     main()
